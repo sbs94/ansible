@@ -1,3 +1,5 @@
+# 공유서버 192.168.20.1 로 Client 폴더 /dir1
+
 - name: Mount NFS share on client
   hosts: db
   tasks:

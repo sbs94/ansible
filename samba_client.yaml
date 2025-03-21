@@ -1,0 +1,40 @@
+# 공유서버 192.168.20.1 로 Client 폴더 /dir2
+
+- name: Setup Samba client and mount Samba share
+  hosts: db
+  become: true  # 관리자 권한으로 실행
+  tasks:
+
+    # 1. 필요한 패키지 설치
+    - name: Install Samba client and cifs-utils
+      apt:
+        name:
+          - samba-client
+          - cifs-utils
+        state: present
+        update_cache: yes
+
+    # 2. Samba 서버에서 공유된 폴더 확인 (선택 사항)
+    #    - name: List available shares from Samba server
+    # command: smbclient -L 192.168.20.1 -U guest
+    # register: smbclient_output
+    # ignore_errors: yes
+
+          # - name: Show Samba shares output
+          # debug:
+          # var: smbclient_output.stdout
+
+    # 3. 마운트할 디렉토리 생성
+    - name: Create mount directory /dir2
+      file:
+        path: /dir2
+        state: directory
+
+    # 4. Samba 공유를 /dir2에 마운트
+    - name: Mount Samba share
+      mount:
+        path: /dir2
+        src: "//192.168.20.1/humans"
+        fstype: cifs
+        opts: username=guest,password=,rw
+        state: mounted

@@ -1,0 +1,84 @@
+- name: Install Samba Server and Configure Samba User
+  hosts: web
+  become: yes
+  vars_prompt:
+    - name: "samba_user_password"
+      prompt: "Please enter the password for the Samba user"
+      private: yes  # 비밀번호를 숨김 처리
+
+  tasks:
+    # 1. Install Samba packages
+    - name: Install Samba packages
+      apt:
+        name:
+          - samba
+          - samba-common
+          - smbclient
+        state: present
+        update_cache: yes
+
+    # 2. Ensure Samba service is started and enabled
+    - name: Ensure Samba service is started and enabled
+      service:
+        name: smbd
+        state: started
+        enabled: yes
+
+    # 3. Create Samba user (smbuser)
+    - name: Create Samba user (smbuser)
+      user:
+        name: smbuser
+        password: "{{ samba_user_password | password_hash('sha512') }}"
+        state: present
+
+    # 4. Add Samba user to Samba database
+    - name: Add Samba user to Samba database
+      command: echo -e "{{ samba_user_password }}\n{{ samba_user_password }}" | smbpasswd -a
+      args:
+        creates: /etc/samba/smbpasswd
+      become: yes
+
+    # 5. Enable Samba user (smbuser)
+    - name: Enable Samba user (smbuser)
+      command: smbpasswd -e smbuser
+      become: yes
+      when: ansible_facts.packages['samba'] is defined
+
+    # 6. Configure Samba share in smb.conf
+    - name: Configure smb.conf for Samba share
+      blockinfile:
+        path: /etc/samba/smb.conf
+        marker: "# {ansible_managed} #"
+        block: |
+          [humans]
+          path = /humans
+          browseable = yes
+          read only = no
+          guest ok = yes
+          create mask = 0777
+          directory mask = 0777
+
+    # 7. Create shared directory for Samba
+    - name: Create shared directory for Samba
+      file:
+        path: /humans
+        state: directory
+        owner: root
+        group: sambashare
+        mode: '0777'
+
+    # 8. Set correct permissions for Samba shared directory
+    - name: Set correct permissions for Samba shared directory
+      file:
+        path: /humans
+        recurse: yes
+        owner: smbuser
+        group: sambashare
+        mode: '0777'
+
+    # 9. Ensure the samba service is reloaded to apply changes
+    - name: Reload Samba service to apply changes
+      systemd:
+        name: smbd
+        state: reloaded
+        enabled: yes
