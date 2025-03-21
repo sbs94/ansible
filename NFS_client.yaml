@@ -1,0 +1,29 @@
+- name: Mount NFS share on client
+  hosts: db
+  tasks:
+  become: true  # 관리자 권한으로 실행하기 위해 추가
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install nfs-common package
+      apt:
+        name: nfs-common
+        state: present
+
+    - name: Show mount points from the NFS server
+      command: showmount -e 192.168.20.1
+      register: showmount_output
+
+    - name: Create mount directory
+      file:
+        path: /dir1
+        state: directory
+
+    - name: Mount NFS share to local directory
+      mount:
+        path: /dir1
+        src: 192.168.20.1:/sales
+        fstype: nfs
+        state: mounted
