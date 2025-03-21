@@ -7,7 +7,7 @@
       private: yes  # 비밀번호를 숨김 처리
 
   tasks:
-    # 1. Install Samba packages
+    # 1. samba 패키지 설치
     - name: Install Samba packages
       apt:
         name:
@@ -15,36 +15,36 @@
           - samba-common
           - smbclient
         state: present
-        update_cache: yes
+        update_cache: ye성s
 
-    # 2. Ensure Samba service is started and enabled
+    # 2. Samba 서비스가 시작되고 활성화되었는지 확인
     - name: Ensure Samba service is started and enabled
       service:
         name: smbd
         state: started
         enabled: yes
 
-    # 3. Create Samba user (smbuser)
+    # 3. samba 사용자 생성
     - name: Create Samba user (smbuser)
       user:
         name: smbuser
         password: "{{ samba_user_password | password_hash('sha512') }}"
         state: present
 
-    # 4. Add Samba user to Samba database
+    # 4. Samba 사용자를 Samba 데이터베이스에 추가
     - name: Add Samba user to Samba database
       command: echo -e "{{ samba_user_password }}\n{{ samba_user_password }}" | smbpasswd -a
       args:
         creates: /etc/samba/smbpasswd
       become: yes
 
-    # 5. Enable Samba user (smbuser)
+    # 5. Samba 사용자를 활성화 (smbuser)
     - name: Enable Samba user (smbuser)
       command: smbpasswd -e smbuser
       become: yes
       when: ansible_facts.packages['samba'] is defined
 
-    # 6. Configure Samba share in smb.conf
+    # 6. smb.conf에서 Samba 공유 설정
     - name: Configure smb.conf for Samba share
       blockinfile:
         path: /etc/samba/smb.conf
@@ -58,7 +58,7 @@
           create mask = 0777
           directory mask = 0777
 
-    # 7. Create shared directory for Samba
+    # 7. Samba용 공유 디렉토리 생성
     - name: Create shared directory for Samba
       file:
         path: /humans
@@ -67,7 +67,7 @@
         group: sambashare
         mode: '0777'
 
-    # 8. Set correct permissions for Samba shared directory
+    # 8. Samba 공유 디렉토리의 적절한 권한 설정
     - name: Set correct permissions for Samba shared directory
       file:
         path: /humans
@@ -76,7 +76,7 @@
         group: sambashare
         mode: '0777'
 
-    # 9. Ensure the samba service is reloaded to apply changes
+    # 9. 변경 사항을 적용하기 위해 Samba 서비스 재시작
     - name: Reload Samba service to apply changes
       systemd:
         name: smbd
